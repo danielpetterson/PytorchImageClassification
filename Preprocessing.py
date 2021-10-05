@@ -13,59 +13,42 @@ data_transform = transforms.Compose([
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize()
+        transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
     ])
 
 path = "/Users/danielpetterson/GitHub/PytorchImageClassification/Data/traindata"
 dataset = datasets.ImageFolder(root=path, transform=data_transform)
 
-dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=10, shuffle=True, num_workers=2)
-
-
-# os.chdir(path)
-# image_paths = glob('./**/*.jpg', recursive=True)
-
-# X = []
-# for img in image_paths:
-#     img_pixels = Image.open(img).getdata()
-#     X.append(img_pixels)
-
-# # Convert to array
-# X=np.asarray(X)
-
-# # Normalization
-# # X=X/255
-
-# # One-hot encoded target variables
-# y = np.array([[1,0,0],[0,1,0],[0,0,1]])
-# y = np.repeat(y, [cherry_count,straw_count,tomato_count], axis=0)
-
-
-
 
 # Hyperparameters
-num_epochs = 5
+num_epochs = 50
 num_classes = 3
-batch_size = 100
+batch_size = 10
 learning_rate = 0.001
 
-# train_loader = torch.utils.data.DataLoader(dataset=(X,y), batch_size=batch_size, shuffle=True)
-# test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+
 
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),
             nn.ReLU())
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2),
             nn.ReLU())
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.drop_out = nn.Dropout()
-        self.fc1 = nn.Linear(7 * 7 * 64, 1000)
-        self.fc2 = nn.Linear(1000, 3)
+        self.flatten = nn.Flatten()
+        self.fc = nn.Sequential(
+            nn.Linear(100352,512),
+            nn.ReLU(),
+            nn.Linear(512,64),
+            nn.ReLU(),
+            nn.Linear(64, 3))
 
     def forward(self, input):
         out = self.conv1(input)
@@ -74,12 +57,13 @@ class CNN(nn.Module):
         out = self.pool2(out)
         out = out.reshape(out.size(0), -1)
         out = self.drop_out(out)
-        out = self.fc1(out)
-        out = self.fc2(out)
+        out = self.flatten(out)
+        out = self.fc(out)
         return out
 
 
 model=CNN()
+
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
