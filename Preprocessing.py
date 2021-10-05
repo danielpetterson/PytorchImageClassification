@@ -3,43 +3,43 @@ from glob import glob
 import numpy as np
 from PIL import Image
 import torch
+from torchvision import transforms, datasets
 import torch.nn as nn
 
 # os.getcwd()
 # sys.path.append('/Users/danielpetterson/miniforge3/lib/python3.9/site-packages')
 
+data_transform = transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize()
+    ])
 
 path = "/Users/danielpetterson/GitHub/PytorchImageClassification/Data/traindata"
-os.chdir(path)
-image_paths = glob('./**/*.jpg', recursive=True)
+dataset = datasets.ImageFolder(root=path, transform=data_transform)
 
-# Count number in each category
-cherry_count  = sum('cherry' in s for s in image_paths)
-straw_count  = sum('strawberry' in s for s in image_paths)
-tomato_count  = sum('tomato' in s for s in image_paths)
-
-X = []
-for img in image_paths:
-    img_pixels = Image.open(img).getdata()
-    X.append(img_pixels)
+dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=10, shuffle=True, num_workers=2)
 
 
-# One-hot encoded target variables
-y = np.array([[1,0,0],[0,1,0],[0,0,1]])
-y = np.repeat(y, [cherry_count,straw_count,tomato_count], axis=0)
+# os.chdir(path)
+# image_paths = glob('./**/*.jpg', recursive=True)
 
+# X = []
+# for img in image_paths:
+#     img_pixels = Image.open(img).getdata()
+#     X.append(img_pixels)
 
-def shuffle_split_data(X, y):
-    split = np.random.choice(range(len(X)), int(0.7*len(X)))
+# # Convert to array
+# X=np.asarray(X)
 
-    X_train = X[split]
-    y_train = y[split]
-    X_test =  X[~split]
-    y_test = y[~split]
+# # Normalization
+# # X=X/255
 
-    return X_train, y_train, X_test, y_test
+# # One-hot encoded target variables
+# y = np.array([[1,0,0],[0,1,0],[0,0,1]])
+# y = np.repeat(y, [cherry_count,straw_count,tomato_count], axis=0)
 
-X_train, y_train, X_test, y_test = shuffle_split_data(X, y)
 
 
 
@@ -49,9 +49,7 @@ num_classes = 3
 batch_size = 100
 learning_rate = 0.001
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=123)
-
-# train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(dataset=(X,y), batch_size=batch_size, shuffle=True)
 # test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 class CNN(nn.Module):
@@ -88,11 +86,11 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Train the model
-total_step = len(train_loader)
+total_step = len(dataset_loader)
 loss_list = []
 acc_list = []
 for epoch in range(num_epochs):
-    for i, (images, labels) in enumerate(train_loader):
+    for i, (images, labels) in enumerate(dataset_loader):
         # Run the forward pass
         outputs = model(images)
         loss = criterion(outputs, labels)
@@ -110,6 +108,4 @@ for epoch in range(num_epochs):
         acc_list.append(correct / total)
 
         if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),
-                          (correct / total) * 100))
+            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'.format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),(correct / total) * 100))
