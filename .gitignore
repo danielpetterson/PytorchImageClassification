@@ -131,3 +131,4 @@ Data/traindata/cherry/.DS_Store
 Data/.DS_Store
 .DS_Store
 *.jpg
+model.pth
