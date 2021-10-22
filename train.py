@@ -27,7 +27,9 @@ def import_preprocess(path):
     data_transform = transforms.Compose([
         transforms.Resize([256, 256]),
         transforms.RandomResizedCrop(230),
-        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.05,hue=.05, saturation=.05),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
         transforms.ToTensor(),
         transforms.Normalize([0.5],[0.5])
     ])
@@ -98,8 +100,6 @@ def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, b
                 loss = criterion(outputs,labels)
                 valid_loss += loss.item()
                 _, predicted = torch.max(outputs.data, 1)
-                print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
-                              for j in range(4)))
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
             val_loss_hist.append(valid_loss/len(val_data))
