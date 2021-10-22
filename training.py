@@ -1,9 +1,10 @@
 import numpy as np
 import torch
+import torch.nn as nn
+from model import CNN
 import torch.utils as ut
 from sklearn.model_selection import KFold
-from utils import import_preprocess
-from model import MLP, CNN
+from torchvision import transforms, datasets
 import matplotlib.pyplot as plt
 
 
@@ -15,20 +16,50 @@ torch.cuda.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 
 
+
 # Hyperparameters
-num_epochs = 3
+num_epochs = 50
 num_classes = 3
-batch_size = 10
+batch_size = 32
 learning_rate = 0.001
 k_folds = 5
 
+def import_preprocess(path):
 
-def train(data, model=CNN(), criterion=None, optimizer=None, fold_num=5, batch_size=10, num_epochs=3, learning_rate=0.001):
+    # Define data transformations
+    data_transform = transforms.Compose([
+        transforms.Resize([256, 256]),
+        transforms.RandomResizedCrop(230),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5],[0.5])
+    ])
+
+    # Import dataset and apply transformation
+    dataset = datasets.ImageFolder(root=path, transform=data_transform)
+
+    return dataset
+
+
+def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, batch_size=batch_size, epochs=num_epochs, lr=learning_rate):
+
+        # Check for GPU
+    if torch.cuda.is_available():
+        print("GPU Available")
+        model = model.cuda()
+        criterion = criterion.cuda()
+    else:
+        model = model
+        criterion = criterion
+    
+    # Print model structure
+    print(model)
+
+    # Define optimizer and learning rate
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
     # Define the K-fold Cross Validator
     kfold = KFold(n_splits=k_folds, shuffle=True)
-    # Instantiate model
-    model=model
-    print(model)
 
     for fold_num, (train, val) in enumerate(kfold.split(data)):
         print(f'Fold {fold_num+1}:')
@@ -41,21 +72,11 @@ def train(data, model=CNN(), criterion=None, optimizer=None, fold_num=5, batch_s
         train_data = ut.data.DataLoader(data, batch_size=batch_size, sampler=train_subsampler)
         val_data = ut.data.DataLoader(data, batch_size=batch_size, sampler=val_subsampler)
 
-        # Loss and optimizer
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-        # Check for GPU
-        if torch.cuda.is_available():
-            print("GPU Available")
-            model = model.cuda()
-            criterion = criterion.cuda()
-
         train_loss_hist = []
         val_loss_hist = []
         acc = {}
 
-        for epoch in range(num_epochs):
+        for epoch in range(epochs):
 
             train_loss = 0.0
             valid_loss = 0.0
@@ -78,10 +99,8 @@ def train(data, model=CNN(), criterion=None, optimizer=None, fold_num=5, batch_s
             for dataset, labels in val_data:
                 outputs = model(dataset)
                 loss = criterion(outputs,labels)
-                valid_loss = loss.item()
-                # print(labels)
+                valid_loss += loss.item()
                 _, predicted = torch.max(outputs.data, 1)
-                # print(predicted)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
             val_loss_hist.append(valid_loss/len(val_data))
@@ -90,35 +109,38 @@ def train(data, model=CNN(), criterion=None, optimizer=None, fold_num=5, batch_s
             print('Accuracy for fold %d: %d %%' % (fold_num+1, 100.0 * correct / total))
 
 
-            print(f'Epoch {epoch+1} \n Training Loss: {train_loss / (len(train_data) * num_epochs)} \n Validation Loss: {valid_loss / len(val_data)}')
+            print(f'Epoch {epoch+1} \n Training Loss: {train_loss / len(train_data)} \n Validation Loss: {valid_loss / len(val_data)}')
             if min_valid_loss > valid_loss:
                 print(' Saving model due to validation loss decrease')
                 min_valid_loss = valid_loss
                 # Saving model state
-                path = f'./savedModel_fold_{fold_num}.pth'
-                torch.save(model.state_dict(), path)
-        # # Print fold results
-        print(f'K-FOLD CROSS VALIDATION RESULTS FOR {k_folds} FOLDS')
+                save_path = f'model.pth'
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': min_valid_loss,
+                    }, save_path)
+        # Print results
         sum = 0.0
         for key, value in acc.items():
-            print(f'Fold {key}: {value} %')
             sum += value
-        print(f'Average: {sum/len(acc.items())} %')
+        print(f'Average Accuracy over {k_folds} folds: {sum/len(acc.items())} %')
 
-        # plt.plot(train_loss_hist)
-        # plt.plot(val_loss_hist)
-        # plt.xlabel('Epoch')
-        # plt.ylabel('Loss')
-        # plt.legend(['Training','Validation'])
-        # plt.title('Loss over time')
+        plt.plot(train_loss_hist)
+        plt.plot(val_loss_hist)
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend(['Training','Validation'])
+        plt.title('Loss over time')
 
-        # plt.show()
+        plt.show()
 
 if __name__ == "__main__":
     # Import training and validation datasets
     path = "/Users/danielpetterson/GitHub/PytorchImageClassification/Data/traindata"
-    data = import_preprocess(path, batch_size)
-    train(data=data, model=MLP())
+    data = import_preprocess(path)
+    train(data)
 
     
 

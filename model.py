@@ -1,27 +1,7 @@
 import torch.nn as nn
 
-class MLP(nn.Module):
-    def __init__(self):
-        super(MLP, self).__init__()
-        self.mlp1 = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(230*230*3,512),
-            nn.ReLU(),
-            # nn.Dropout(),
-            nn.Linear(512,256),
-            nn.ReLU(),
-            # nn.Dropout(),
-            nn.Linear(256,64),
-            nn.ReLU(),
-            # nn.Dropout(),
-            nn.Linear(64, 3))
 
-    def forward(self, input):
-        out = self.mlp1(input)
-        
-        return out
-
-
+# Define model
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
@@ -41,13 +21,12 @@ class CNN(nn.Module):
             nn.Flatten(),
             nn.Linear(86528,512),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(p=0.2),
             nn.Linear(512,256),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(p=0.2),
             nn.Linear(256,64),
             nn.ReLU(),
-            nn.Dropout(),
             nn.Linear(64, 3))
 
     def forward(self, input):
