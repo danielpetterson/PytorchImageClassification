@@ -15,9 +15,9 @@ torch.cuda.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 
 # Hyperparameters
-num_epochs = 2
+num_epochs = 75
 num_classes = 3
-batch_size = 32
+batch_size = 128
 learning_rate = 0.001
 k_folds = 5
 
@@ -26,7 +26,7 @@ def import_preprocess(path):
     # Define data transformations
     data_transform = transforms.Compose([
         transforms.Resize([256, 256]),
-        transforms.RandomResizedCrop(230),
+        transforms.RandomResizedCrop(224),
         transforms.ColorJitter(brightness=0.05,hue=.05, saturation=.05),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
@@ -71,15 +71,14 @@ def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, b
         train_data = ut.data.DataLoader(data, batch_size=batch_size, sampler=train_subsampler)
         val_data = ut.data.DataLoader(data, batch_size=batch_size, sampler=val_subsampler)
 
-        train_loss_hist = []
-        val_loss_hist = []
         acc = {}
+        min_valid_loss = np.inf
 
         for epoch in range(epochs):
 
             train_loss = 0.0
             valid_loss = 0.0
-            min_valid_loss = np.inf
+
 
             model.train()
             for dataset, labels in train_data:
@@ -90,7 +89,6 @@ def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, b
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
-            train_loss_hist.append(train_loss/len(train_data))
             
             model.eval()
             correct = 0.0
@@ -102,7 +100,6 @@ def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, b
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-            val_loss_hist.append(valid_loss/len(val_data))
             accuracy = (correct / total) * 100.0
             acc[fold_num] = accuracy
             print('Accuracy for fold %d: %d %%' % (fold_num+1, 100.0 * correct / total))
@@ -114,7 +111,7 @@ def train(data, model=CNN(), criterion=nn.CrossEntropyLoss(), k_folds=k_folds, b
                 min_valid_loss = valid_loss
                 # Saving model state
                 save_path = 'model.pth'
-                # torch.save(model.state_dict(), save_path)
+                torch.save(model.state_dict(), save_path)
         # Print results
         sum = 0.0
         for key, value in acc.items():
