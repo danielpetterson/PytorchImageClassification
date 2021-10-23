@@ -124,6 +124,7 @@ if __name__ == "__main__":
     # Import training and validation datasets
     path = path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "testdata"))
     data = import_preprocess(path)
+    # Train model
     train(data)
 
 

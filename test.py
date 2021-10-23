@@ -11,7 +11,9 @@ if __name__ == "__main__":
     location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     model.load_state_dict(torch.load(os.path.join(location, "model.pth")))
 
-        # Define data transformations
+    batch_size=128
+
+    # Define data transformations
     data_transform = transforms.Compose([
         # Scale to same size as training images
         transforms.Resize([230, 230]),
@@ -23,7 +25,9 @@ if __name__ == "__main__":
     # Import dataset and apply transformation
     path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "testdata"))
     test_data = datasets.ImageFolder(root=path, transform=data_transform)
-    test_loader = ut.data.DataLoader(test_data, batch_size=32)
+    test_loader = ut.data.DataLoader(test_data, batch_size=batch_size)
+
+    # Split features and labels
     dataiter = iter(test_loader)
     data, labels = dataiter.next()
     
