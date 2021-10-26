@@ -17,7 +17,7 @@ torch.backends.cudnn.deterministic = True
 # Hyperparameters
 num_epochs = 75
 num_classes = 3
-batch_size = 128
+batch_size = 64
 learning_rate = 0.001
 k_folds = 5
 

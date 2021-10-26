@@ -21,10 +21,10 @@ class CNN(nn.Module):
             nn.Flatten(),
             nn.Linear(67712,512),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.2),
             nn.Linear(512,256),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.2),
             nn.Linear(256,64),
             nn.ReLU(),
             nn.Linear(64, 3))
@@ -44,10 +44,10 @@ class MLP(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(224*224,512),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.2),
             nn.Linear(512,256),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.2),
             nn.Linear(256,64),
             nn.ReLU(),
             nn.Linear(64, 3))
